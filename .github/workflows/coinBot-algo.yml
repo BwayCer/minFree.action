@@ -1,0 +1,26 @@
+name: CoinBot Algo
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/15 * * * *'
+
+jobs:
+  runUbuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          repository: BwayCer/coinArbitrage.node
+          ref: coinBot
+          token: ${{ secrets.BWAYCER_ACCESS_TOKEN }}
+      - name: Run npm install
+        run: npm install --production
+      - name: Run set config
+        run: |
+          mkdir -p dist/assets/config
+          echo '${{ secrets.CONFIG_APP }}' > dist/assets/config/app.js
+          echo '${{ secrets.CONFIG_TOKEN }}' > dist/assets/config/token.js
+      - name: Run node script
+        run: node dist/assets/savings/main.js
+
