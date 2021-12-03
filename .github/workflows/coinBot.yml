@@ -1,9 +1,10 @@
-name: CoinBot Algo
+name: CoinBot
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '*/5 * * * *'
+  # NOTE: 根本是每小時執行一次
+  # schedule:
+  #   - cron: '*/5 * * * *'
 
 jobs:
   runUbuntu:
@@ -19,8 +20,9 @@ jobs:
       - name: Run set config
         run: |
           mkdir -p dist/assets/config
-          echo '${{ secrets.CONFIG_APP }}' > dist/assets/config/app.js
           echo '${{ secrets.CONFIG_TOKEN }}' > dist/assets/config/token.js
-      - name: Run node script
-        run: node dist/assets/savings/main.js
+      - name: Run node Savings ALGO
+        run: node dist/assets/app/coin/savings.js
+      - name: Run node PiModule
+        run: node dist/assets/app/coin/piModule.js
 
