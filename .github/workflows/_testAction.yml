@@ -1,0 +1,58 @@
+name: _Test Action
+
+on:
+  workflow_dispatch:
+    inputs:
+      dockerLabel:
+        description: 'docker container label'
+        required: false
+        default: 'hello-world'
+  # NOTE: 根本是每小時執行一次
+  # schedule:
+  #   - cron: '*/5 * * * *'
+
+jobs:
+  runUbuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - name: if true
+        if: true
+        run: echo 'if true'
+      - name: if false
+        if: false
+        run: echo 'if false'
+      - name: if {{true}}
+        if: ${{ true }}
+        run: echo 'if {{ true }}'
+      - name: if {{false}}
+        if: ${{ false }}
+        run: echo 'if {{ false }}'
+      - name: Common command version
+        run: |
+          cmdList=(bash --version)
+          echo "\$ ${cmdList[*]}" && "${cmdList[@]}" && echo
+          cmdList=(docker --version)
+          echo "\$ ${cmdList[*]}" && "${cmdList[@]}" && echo
+          cmdList=(node --version)
+          echo "\$ ${cmdList[*]}" && "${cmdList[@]}" && echo
+          cmdList=(npm --version)
+          echo "\$ ${cmdList[*]}" && "${cmdList[@]}" && echo
+      - name: Download docker container
+        run: |
+          theContainerLabel="${{ github.event.inputs.dockerLabel }}"
+          if (
+            docker image ls --format "{{.Repository}}" |
+            grep "$theContainerLabel"
+          ) &> /dev/null; then
+            echo "Docker container label \"$theContainerLabel\" already exists."
+            echo
+          else
+            echo "\$ docker image ls --format {{.Repository}}" &&
+              printf '%s\t%s\t%s\n' $(docker image ls --format "{{.Repository}}:{{.Tag}}") &&
+              echo
+            cmdList=(docker pull "$theContainerLabel")
+            echo "\$ ${cmdList[*]}" && "${cmdList[@]}" && echo
+          fi
+          cmdList=(docker image ls)
+          echo "\$ ${cmdList[*]}" && "${cmdList[@]}" && echo
+
