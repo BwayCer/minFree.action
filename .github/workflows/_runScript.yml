@@ -1,0 +1,36 @@
+name: _Run Script
+
+on:
+  workflow_dispatch:
+    inputs:
+      os:
+        description: 'running operating system'
+        required: true
+        default: 'ubuntu-latest'
+      shellScript:
+        description: 'shell script url'
+        required: false
+      powershellScript:
+        description: 'powershell script url'
+        required: false
+      dockerImage:
+        description: 'docker image label'
+        required: false
+
+jobs:
+  runScript:
+    runs-on: ${{ github.event.inputs.os }}
+    steps:
+      - name: Run shell script
+        if: ${{ github.event.inputs.shellScript }}
+        run: |
+          curl "${{ github.event.inputs.shellScript }}" | sh
+      - name: Run powershell script
+        if: ${{ github.event.inputs.powershellScript }}
+        run: |
+          iwr "${{ github.event.inputs.powershellScript }}" | iex
+      - name: Run docker image
+        if: ${{ github.event.inputs.dockerImage }}
+        run: |
+          docker run --rm -t "${{ github.event.inputs.dockerImage }}"
+
