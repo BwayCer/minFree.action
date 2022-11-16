@@ -7,6 +7,13 @@ on:
         description: 'running operating system'
         required: true
         default: 'ubuntu-latest'
+      ghRepo:
+        description: 'github repository'
+        required: false
+      ghRepoRef:
+        description: 'github repository reference'
+        required: true
+        default: 'main'
       shellScript:
         description: 'shell script url'
         required: false
@@ -16,21 +23,63 @@ on:
       dockerImage:
         description: 'docker image label'
         required: false
+      isUpdate:
+        description: 'Is to update'
+        required: false
+        default: 'false'
 
 jobs:
   runScript:
     runs-on: ${{ github.event.inputs.os }}
     steps:
+      - uses: actions/checkout@v3
+        if: ${{ github.event.inputs.ghRepo }}
+        with:
+          repository: ${{ github.event.inputs.ghRepo }}
+          ref: ${{ github.event.inputs.ghRepoRef }}
+          token: ${{ secrets.BWAYCER_ACCESS_TOKEN }}
       - name: Run shell script
         if: ${{ github.event.inputs.shellScript }}
         run: |
-          curl "${{ github.event.inputs.shellScript }}" | sh
+          shellCmd="sh"
+          case `uname -a` in
+            *Ubuntu* )
+              sudo apt install bash
+              shellCmd="bash"
+              ;;
+            *Darwin* )
+              brew install bash
+              shellCmd="bash"
+              ;;
+          esac
+          # Linux fv-az152-369 5.15.0-1022-azure #27~20.04.1-Ubuntu SMP Mon Oct 17 02:03:50 UTC 2022 x86_64 x86_64 x86_64 GNU/Linux
+          # Darwin Mac-1668813989823.local 21.6.0 Darwin Kernel Version 21.6.0: Thu Sep 29 20:12:57 PDT 2022; root:xnu-8020.240.7~1/RELEASE_X86_64 x86_64
+          curl "${{ github.event.inputs.shellScript }}" | $shellCmd
       - name: Run powershell script
         if: ${{ github.event.inputs.powershellScript }}
         run: |
           iwr "${{ github.event.inputs.powershellScript }}" | iex
+      - name: Store GitHub
+        if: ${{ github.event.inputs.isUpdate && github.event.inputs.ghRepo }}
+        run: |
+          tagTime=$(date -u +\"%Y-%m-%dT%H:%M:%S\")
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add .
+          git commit --allow-empty -m "chore: store by GitHub Actions $tagTime"
+          git push
       - name: Run docker image
         if: ${{ github.event.inputs.dockerImage }}
         run: |
-          docker run --rm -t "${{ github.event.inputs.dockerImage }}"
+          docker run -t -v $PWD:/app "${{ github.event.inputs.dockerImage }}"
+          if [ "${{ github.event.inputs.isUpdate }}" == true ]; then
+            dockerRepo=$(sed "s/:.\+//" <<< "${{ github.event.inputs.dockerImage }}")
+            tagTime=$(date -u +\"%Y-%m-%dT%H:%M:%S\")
+            tag=$(date -u +"%Y%m%d-%H%M%S")
+            docker commit -a "BwayCer" \
+              -m "chore: store by GitHub Actions $tagTime" \
+              "$(docker ps -a --format '{{.ID}}' | sed -n '1p')" \
+              "$dockerRepo:$tag"
+            docker push "$dockerRepo:$tag"
+          fi
 
