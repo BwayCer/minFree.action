@@ -1,0 +1,24 @@
+name: Install flutter
+description: Install Flutter SDK
+inputs:
+  ghRepo:
+    description: github repository of flutter
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Install flutter
+      shell: bash
+      env:
+        ghRepo: "${{ inputs.ghRepo }}"
+        toolPath: "${{ runner.tool_cache }}/flutter/${{ inputs.ghRepo }}"
+        toolPubPath: "${{ runner.tool_cache }}/flutter/.pub-cache"
+      run: |
+        git clone --branch "$ghRepo" --depth 1 https://github.com/flutter/flutter.git "$toolPath"
+        { echo $toolPath/bin
+          echo $toolPath/bin/cache/dart-sdk/bin
+        } >> "$GITHUB_PATH"
+        { echo FLUTTER_ROOT=$toolPath
+          echo PUB_CACHE=$toolPubPath
+        } >> "$GITHUB_STATE"
+
